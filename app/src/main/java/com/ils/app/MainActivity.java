@@ -58,11 +58,13 @@ public class MainActivity extends ScanActivity {
         setContentView(buildRoot());
         DataWedge.configureOnce(this);
         showTab(tab);
+        Updater.checkOnLaunch(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        Updater.resumePendingInstall(this);
         refreshBins();
         if (lastQuery != null) runSearch(lastQuery, lastFromScan);
     }
@@ -402,6 +404,7 @@ public class MainActivity extends ScanActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        menu.add(0, 3, 0, "Check for updates");
         menu.add(0, 1, 0, "Set up scanner again");
         menu.add(0, 2, 0, "About");
         return true;
@@ -414,10 +417,14 @@ public class MainActivity extends ScanActivity {
             Toast.makeText(this, "Scanner profile \"ILS\" sent to DataWedge", Toast.LENGTH_SHORT).show();
             return true;
         }
+        if (item.getItemId() == 3) {
+            Updater.checkNow(this);
+            return true;
+        }
         if (item.getItemId() == 2) {
             new AlertDialog.Builder(this)
-                    .setTitle("ILS")
-                    .setMessage("Inventory of bins and what's inside them.\n\nMake a bin, add items with photos, print its label, then scan the label from the Search tab.")
+                    .setTitle("ILS " + Updater.installedName(this))
+                    .setMessage("Inventory of bins and what's inside them.\n\nMake a bin, add items with photos, print its label, then scan the label from the Search tab.\n\nILS checks for updates each time it opens. Updates keep all your bins and photos.")
                     .setPositiveButton("OK", null)
                     .show();
             return true;

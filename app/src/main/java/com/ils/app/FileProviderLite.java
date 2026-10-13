@@ -30,7 +30,9 @@ public class FileProviderLite extends ContentProvider {
         if (seg.size() != 2) throw new FileNotFoundException(uri.toString());
         String folder = seg.get(0);
         String name = seg.get(1);
-        if (!folder.equals("photos") && !folder.equals("labels")) throw new FileNotFoundException(uri.toString());
+        if (!folder.equals("photos") && !folder.equals("labels") && !folder.equals("updates")) {
+            throw new FileNotFoundException(uri.toString());
+        }
         if (name.contains("/") || name.contains("..")) throw new FileNotFoundException(uri.toString());
         File dir = new File(getContext().getFilesDir(), folder);
         //noinspection ResultOfMethodCallIgnored
@@ -66,7 +68,9 @@ public class FileProviderLite extends ContentProvider {
     @Override
     public String getType(Uri uri) {
         String p = uri.getPath();
-        return p != null && p.endsWith(".png") ? "image/png" : "image/jpeg";
+        if (p == null) return null;
+        if (p.endsWith(".apk")) return "application/vnd.android.package-archive";
+        return p.endsWith(".png") ? "image/png" : "image/jpeg";
     }
 
     @Override
