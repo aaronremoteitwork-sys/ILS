@@ -1,0 +1,57 @@
+name: Build ILS APK
+
+# Every push to main builds a new ILS.apk and publishes it as the latest GitHub release.
+# Permanent download link (use this in StageNow):
+#   https://github.com/<your-username>/ILS/releases/latest/download/ILS.apk
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Restore signing key
+        env:
+          ILS_KEYSTORE_B64: ${{ secrets.ILS_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$ILS_KEYSTORE_B64" ]; then
+            echo "::error::Add the ILS_KEYSTORE_B64 secret (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          echo "$ILS_KEYSTORE_B64" | base64 -d > app/ils.jks
+
+      - name: Build APK
+        env:
+          ILS_KEY_PASSWORD: ${{ secrets.ILS_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ILS.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: ILS 1.0.${{ github.run_number }}
+          files: ILS.apk
+          make_latest: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ILS-apk
+          path: ILS.apk

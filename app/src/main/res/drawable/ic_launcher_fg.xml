@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A bin (box with lid) with a barcode on its front -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#F2A900" android:pathData="M30,34 h48 v7 h-48 z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M33,43 h42 v31 h-42 z" />
+    <path android:fillColor="#1F3A5F"
+        android:pathData="M38,49 h3 v19 h-3 z M43,49 h1.5 v19 h-1.5 z M46.5,49 h3.5 v19 h-3.5 z M52,49 h1.5 v19 h-1.5 z M55.5,49 h2.5 v19 h-2.5 z M60,49 h1.5 v19 h-1.5 z M63.5,49 h3.5 v19 h-3.5 z M69,49 h1.5 v19 h-1.5 z" />
+</vector>
