@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
@@ -92,10 +93,36 @@ final class Updater {
 
     static String installedName(Context c) {
         try {
-            return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
+            String name = c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
+            return name != null ? name : "?";
         } catch (Exception e) {
             return "?";
         }
+    }
+
+    /**
+     * Shows a one-time What's new dialog when this install's versionCode or versionName
+     * is newer than the last one the user saw (including the first launch after an update
+     * from a build that didn't store it). Does not change {@link #checkOnLaunch}.
+     */
+    static void showWhatsNew(Activity a) {
+        if (!alive(a)) return;
+        long code = installedVersion(a);
+        String name = installedName(a);
+        SharedPreferences sp = a.getSharedPreferences(Ui.PREFS, Context.MODE_PRIVATE);
+        long seenCode = sp.getLong("seen_version_code", -1L);
+        String seenName = sp.getString("seen_version_name", null);
+        boolean never = seenCode < 0 || seenName == null;
+        boolean newer = seenCode >= 0 && code > seenCode;
+        boolean renamed = seenName != null && code == seenCode && !seenName.equals(name);
+        if (!never && !newer && !renamed) return;
+        sp.edit().putLong("seen_version_code", code).putString("seen_version_name", name).commit();
+        Ui.dialog(a)
+                .setTitle("What's new")
+                .setMessage("ILS " + name + " adds Light, Dark, and Auto themes.\n\n"
+                        + "Open the menu on this screen and tap Theme. Auto follows the device's night mode.")
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     // ---------- check ----------
@@ -123,7 +150,7 @@ final class Updater {
                     if (manual) Toast.makeText(a, "ILS is up to date (version " + installedName(a) + ")", Toast.LENGTH_LONG).show();
                     return;
                 }
-                new AlertDialog.Builder(a)
+                Ui.dialog(a)
                         .setTitle("Update available")
                         .setMessage("ILS " + rel.name + " is ready. You have " + installedName(a) + ".\n\n"
                                 + "Your bins, items and photos are kept.")
@@ -181,7 +208,7 @@ final class Updater {
         box.addView(bar, Ui.matchWrap(a, 12));
 
         final boolean[] cancelled = {false};
-        AlertDialog dialog = new AlertDialog.Builder(a)
+        AlertDialog dialog = Ui.dialog(a)
                 .setTitle("Updating ILS")
                 .setView(box)
                 .setCancelable(false)
@@ -245,7 +272,7 @@ final class Updater {
                     //noinspection ResultOfMethodCallIgnored
                     apk.delete();
                     if (alive(a)) {
-                        new AlertDialog.Builder(a)
+                        Ui.dialog(a)
                                 .setTitle("Update not installed")
                                 .setMessage(err + "\n\nNothing was changed. Your bins and photos are safe.")
                                 .setPositiveButton("OK", null)
@@ -304,7 +331,7 @@ final class Updater {
             return;
         }
         if (!a.getPackageManager().canRequestPackageInstalls()) {
-            new AlertDialog.Builder(a)
+            Ui.dialog(a)
                     .setTitle("One-time permission")
                     .setMessage("Android needs you to allow ILS to install its own updates.\n\n"
                             + "On the next screen, turn on \"Allow from this source\", then press Back.")
