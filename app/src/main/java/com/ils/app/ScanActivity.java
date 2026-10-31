@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
+import android.os.Bundle;
 
 /** Base screen that receives barcodes from the TC52 scanner (via DataWedge) while visible. */
 public abstract class ScanActivity extends Activity {
@@ -21,8 +22,16 @@ public abstract class ScanActivity extends Activity {
     private boolean registered;
 
     @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        Ui.applyTheme(this);
+        super.onCreate(savedInstanceState);
+        Ui.paintSystemBars(this);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        Ui.paintSystemBars(this);
         IntentFilter f = new IntentFilter(DataWedge.SCAN_ACTION);
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(receiver, f, Context.RECEIVER_EXPORTED);

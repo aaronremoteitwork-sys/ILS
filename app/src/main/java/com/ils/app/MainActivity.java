@@ -1,6 +1,5 @@
 package com.ils.app;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -10,6 +9,7 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -32,6 +32,14 @@ public class MainActivity extends ScanActivity {
 
     private static final int TAB_BINS = 0;
     private static final int TAB_SEARCH = 1;
+
+    private static final int MENU_SCANNER = 1;
+    private static final int MENU_ABOUT = 2;
+    private static final int MENU_UPDATE = 3;
+    private static final int MENU_THEME_LIGHT = 11;
+    private static final int MENU_THEME_DARK = 12;
+    private static final int MENU_THEME_AUTO = 13;
+    private static final int THEME_GROUP = 1;
 
     private Db db;
     private int tab = TAB_BINS;
@@ -64,6 +72,7 @@ public class MainActivity extends ScanActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Updater.showWhatsNew(this);
         Updater.resumePendingInstall(this);
         refreshBins();
         if (lastQuery != null) runSearch(lastQuery, lastFromScan);
@@ -132,6 +141,8 @@ public class MainActivity extends ScanActivity {
 
         FrameLayout listBox = new FrameLayout(this);
         ListView list = new ListView(this);
+        list.setBackgroundColor(Ui.BG);
+        list.setCacheColorHint(Ui.BG);
         list.setDivider(new ColorDrawable(Color.TRANSPARENT));
         list.setDividerHeight(Ui.dp(this, 10));
         list.setClipToPadding(false);
@@ -158,6 +169,7 @@ public class MainActivity extends ScanActivity {
     private View buildSearchPage() {
         searchScroll = new ScrollView(this);
         searchScroll.setFillViewport(true);
+        searchScroll.setBackgroundColor(Ui.BG);
         LinearLayout page = Ui.vertical(this);
         int p = Ui.dp(this, 16);
         page.setPadding(p, p, p, p);
@@ -177,6 +189,7 @@ public class MainActivity extends ScanActivity {
         searchField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         searchField.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
         // Also handles a scanner that "types" the code followed by Enter.
+        Ui.styleField(searchField);
         searchField.setOnEditorActionListener((v, actionId, event) -> {
             boolean enter = event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER;
             if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE || enter) {
@@ -213,7 +226,7 @@ public class MainActivity extends ScanActivity {
     }
 
     private void styleTab(TextView v, boolean selected) {
-        v.setTextColor(selected ? Ui.PRIMARY : Ui.MUTED);
+        v.setTextColor(selected ? Ui.ACCENT : Ui.MUTED);
         if (selected) {
             android.graphics.drawable.GradientDrawable bar = new android.graphics.drawable.GradientDrawable();
             bar.setColor(Ui.CARD);
@@ -243,7 +256,7 @@ public class MainActivity extends ScanActivity {
     }
 
     private void binOptions(Db.Bin b) {
-        new AlertDialog.Builder(this)
+        Ui.dialog(this)
                 .setTitle(b.name)
                 .setItems(new String[]{"Open", "Rename", "Delete"}, (d, which) -> {
                     if (which == 0) BinActivity.open(this, b.id);
@@ -357,18 +370,20 @@ public class MainActivity extends ScanActivity {
 
     private void showBinResult(Db.Bin bin) {
         LinearLayout card = Ui.card(this);
-        card.setBackground(Ui.rounded(this, Ui.PRIMARY, 12));
+        android.graphics.drawable.GradientDrawable face = Ui.rounded(this, Ui.CARD, 12);
+        face.setStroke(Ui.dp(this, 2), Ui.ACCENT);
+        card.setBackground(face);
         TextView code = Ui.text(this, bin.code, 13, Ui.ACCENT, true);
         code.setLetterSpacing(0.1f);
         card.addView(code);
-        TextView name = Ui.text(this, bin.name, 26, Color.WHITE, true);
+        TextView name = Ui.text(this, bin.name, 26, Ui.TEXT, true);
         name.setPadding(0, Ui.dp(this, 2), 0, 0);
         card.addView(name);
         TextView count = Ui.text(this, bin.itemCount == 0 ? "Empty"
-                : bin.itemCount + (bin.itemCount == 1 ? " item inside" : " items inside"), 15, 0xFFD6DEE8, false);
+                : bin.itemCount + (bin.itemCount == 1 ? " item inside" : " items inside"), 15, Ui.MUTED, false);
         count.setPadding(0, Ui.dp(this, 2), 0, Ui.dp(this, 12));
         card.addView(count);
-        Button open = Ui.button(this, "Open bin to edit", false);
+        Button open = Ui.button(this, "Open bin to edit", true);
         open.setOnClickListener(v -> BinActivity.open(this, bin.id));
         card.addView(open);
         results.addView(card);
@@ -404,27 +419,54 @@ public class MainActivity extends ScanActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, 3, 0, "Check for updates");
-        menu.add(0, 1, 0, "Set up scanner again");
-        menu.add(0, 2, 0, "About");
+        SubMenu theme = menu.addSubMenu(0, 10, 0, "Theme");
+        theme.add(THEME_GROUP, MENU_THEME_LIGHT, 0, "Light").setCheckable(true);
+        theme.add(THEME_GROUP, MENU_THEME_DARK, 0, "Dark").setCheckable(true);
+        theme.add(THEME_GROUP, MENU_THEME_AUTO, 0, "Auto").setCheckable(true);
+        theme.setGroupCheckable(THEME_GROUP, true, true);
+        menu.add(0, MENU_UPDATE, 0, "Check for updates");
+        menu.add(0, MENU_SCANNER, 0, "Set up scanner again");
+        menu.add(0, MENU_ABOUT, 0, "About");
         return true;
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        String mode = Ui.themeMode(this);
+        MenuItem light = menu.findItem(MENU_THEME_LIGHT);
+        MenuItem dark = menu.findItem(MENU_THEME_DARK);
+        MenuItem auto = menu.findItem(MENU_THEME_AUTO);
+        if (light != null) light.setChecked(Ui.THEME_LIGHT.equals(mode));
+        if (dark != null) dark.setChecked(Ui.THEME_DARK.equals(mode));
+        if (auto != null) auto.setChecked(Ui.THEME_AUTO.equals(mode));
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == 1) {
+        int id = item.getItemId();
+        if (id == MENU_THEME_LIGHT || id == MENU_THEME_DARK || id == MENU_THEME_AUTO) {
+            String mode = id == MENU_THEME_LIGHT ? Ui.THEME_LIGHT
+                    : id == MENU_THEME_DARK ? Ui.THEME_DARK : Ui.THEME_AUTO;
+            if (!mode.equals(Ui.themeMode(this))) {
+                Ui.saveTheme(this, mode);
+                recreate();
+            }
+            return true;
+        }
+        if (id == MENU_SCANNER) {
             DataWedge.configure(this);
             Toast.makeText(this, "Scanner profile \"ILS\" sent to DataWedge", Toast.LENGTH_SHORT).show();
             return true;
         }
-        if (item.getItemId() == 3) {
+        if (id == MENU_UPDATE) {
             Updater.checkNow(this);
             return true;
         }
-        if (item.getItemId() == 2) {
-            new AlertDialog.Builder(this)
+        if (id == MENU_ABOUT) {
+            Ui.dialog(this)
                     .setTitle("ILS " + Updater.installedName(this))
-                    .setMessage("Inventory of bins and what's inside them.\n\nMake a bin, add items with photos, print its label, then scan the label from the Search tab.\n\nILS checks for updates each time it opens. Updates keep all your bins and photos.")
+                    .setMessage("Inventory of bins and what's inside them.\n\nMake a bin, add items with photos, print its label, then scan the label from the Search tab.\n\nTheme (Light, Dark, or Auto) is in this menu. Auto follows the device's night mode.\n\nILS checks for updates each time it opens. Updates keep all your bins and photos.")
                     .setPositiveButton("OK", null)
                     .show();
             return true;

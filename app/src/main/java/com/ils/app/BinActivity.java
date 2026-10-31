@@ -70,6 +70,7 @@ public class BinActivity extends ScanActivity {
 
         ListView list = new ListView(this);
         list.setBackgroundColor(Ui.BG);
+        list.setCacheColorHint(Ui.BG);
         list.setDivider(new ColorDrawable(Color.TRANSPARENT));
         list.setDividerHeight(Ui.dp(this, 8));
         int p = Ui.dp(this, 16);
@@ -189,12 +190,13 @@ public class BinActivity extends ScanActivity {
         input.setSingleLine(true);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         input.setHint("Item name (e.g. Christmas lights)");
+        Ui.styleField(input);
         FrameLayout wrap = new FrameLayout(this);
         int p = Ui.dp(this, 22);
         wrap.setPadding(p, Ui.dp(this, 8), p, 0);
         wrap.addView(input);
 
-        AlertDialog d = new AlertDialog.Builder(this)
+        AlertDialog d = Ui.dialog(this)
                 .setTitle("Add item to " + bin.name)
                 .setView(wrap)
                 .setPositiveButton("Take photo", null)
@@ -291,7 +293,7 @@ public class BinActivity extends ScanActivity {
 
     private void itemOptions(Db.Item it) {
         String photoLabel = it.photo != null ? "Take a new photo" : "Add a photo";
-        new AlertDialog.Builder(this)
+        Ui.dialog(this)
                 .setTitle(it.name)
                 .setItems(new String[]{"Rename", photoLabel, "Move to another bin", "Delete"}, (d, which) -> {
                     if (which == 0) {
@@ -323,7 +325,7 @@ public class BinActivity extends ScanActivity {
         }
         String[] names = new String[others.size()];
         for (int i = 0; i < names.length; i++) names[i] = others.get(i).name + "  (" + others.get(i).code + ")";
-        new AlertDialog.Builder(this)
+        Ui.dialog(this)
                 .setTitle("Move \"" + it.name + "\" to…")
                 .setItems(names, (d, which) -> {
                     db.moveItem(it.id, others.get(which).id);
